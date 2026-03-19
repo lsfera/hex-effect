@@ -1,9 +1,8 @@
-import { Schema } from '@effect/schema';
-import { ParseError } from '@effect/schema/ParseResult';
+import { Schema, Effect } from 'effect';
 import type { PersistenceError } from '@hex-effect/core';
 import { isPersistenceError } from '@hex-effect/core';
-import { Effect } from 'effect';
 import { isTagged } from 'effect/Predicate';
+import type { ParseError } from 'effect/ParseResult';
 
 export enum ErrorKinds {
   NotFound = 'NotFound',

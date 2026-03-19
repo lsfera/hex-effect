@@ -1,11 +1,10 @@
-import { Effect, Layer, pipe } from 'effect';
+import { Effect, Layer, Option, pipe, Schema } from 'effect';
 import { isTagged } from 'effect/Predicate';
 import { SqlClient, SqlError } from '@effect/sql';
 import { InfrastructureError } from '@hex-effect/core';
 import { WriteStatement } from '@hex-effect/infra-libsql-nats';
 import { Services } from '@projects/application';
-import { Schema } from '@effect/schema';
-import { Project } from '@projects/domain';
+import { Project, Task } from '@projects/domain';
 
 const logAndMap = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   pipe(
@@ -40,6 +39,71 @@ export const GetAllProjectsLive = Layer.effect(
       getAll: () =>
         sql`SELECT * FROM projects;`.pipe(
           Effect.flatMap(Schema.decodeUnknown(Schema.Array(Project.Model.Project))),
+          Effect.mapError((e) => new InfrastructureError({ cause: e }))
+        )
+    }))
+  )
+);
+
+export const FindProjectByIdLive = Layer.effect(
+  Services.FindProjectById,
+  SqlClient.SqlClient.pipe(
+    Effect.map((sql) => ({
+      findById: (id: typeof Project.Model.ProjectId.Type) =>
+        sql`SELECT * FROM projects WHERE id = ${id};`.pipe(
+          Effect.flatMap(Schema.decodeUnknown(Schema.Array(Project.Model.Project))),
+          Effect.map((results) => Option.fromNullable(results[0])),
+          Effect.mapError((e) => new InfrastructureError({ cause: e }))
+        )
+    }))
+  )
+);
+
+// SQLite stores booleans as 0/1 integers — decode accordingly
+const TaskFromSqlite = Schema.Struct({
+  id: Task.Model.TaskId,
+  projectId: Project.Model.ProjectId,
+  description: Schema.NonEmptyString,
+  completed: Schema.transform(Schema.Number, Schema.Boolean, {
+    decode: (n) => n !== 0,
+    encode: (b) => (b ? 1 : 0)
+  })
+});
+
+export const SaveTaskLive = Layer.effect(
+  Services.SaveTask,
+  pipe(
+    Effect.zip(SqlClient.SqlClient, WriteStatement),
+    Effect.map(([sql, write]) => {
+      const service: typeof Services.SaveTask.Service = {
+        save: (t) =>
+          write(
+            sql`INSERT INTO tasks ${sql.insert({ ...t, completed: t.completed ? 1 : 0 })};`
+          ).pipe(logAndMap)
+      };
+      return service;
+    })
+  )
+);
+
+export const DeleteTaskLive = Layer.effect(
+  Services.DeleteTask,
+  pipe(
+    Effect.zip(SqlClient.SqlClient, WriteStatement),
+    Effect.map(([sql, write]) => ({
+      delete: (id: typeof Task.Model.TaskId.Type) =>
+        write(sql`DELETE FROM tasks WHERE id = ${id};`).pipe(logAndMap)
+    }))
+  )
+);
+
+export const GetTasksByProjectIdLive = Layer.effect(
+  Services.GetTasksByProjectId,
+  SqlClient.SqlClient.pipe(
+    Effect.map((sql) => ({
+      getByProjectId: (projectId: typeof Project.Model.ProjectId.Type) =>
+        sql`SELECT * FROM tasks WHERE project_id = ${projectId};`.pipe(
+          Effect.flatMap(Schema.decodeUnknown(Schema.Array(TaskFromSqlite))),
           Effect.mapError((e) => new InfrastructureError({ cause: e }))
         )
     }))

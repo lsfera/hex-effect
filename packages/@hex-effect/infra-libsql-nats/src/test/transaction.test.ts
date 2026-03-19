@@ -1,7 +1,6 @@
 import { SqlClient } from '@effect/sql';
 import { describe, expect, layer } from '@effect/vitest';
-import { Effect, Layer, identity, Stream, Fiber, Struct, Array } from 'effect';
-import { Schema } from '@effect/schema';
+import { Effect, Layer, identity, Stream, Fiber, Struct, Array, Schema } from 'effect';
 import { IsolationLevel, UUIDGenerator, withTXBoundary } from '@hex-effect/core';
 import { GetUnpublishedEvents, MarkAsPublished, SaveEvents } from '../event-store.js';
 import { LibsqlSdk } from '../sql.js';

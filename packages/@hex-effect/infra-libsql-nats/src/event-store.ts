@@ -3,14 +3,14 @@ import { Context, Effect, Layer, pipe } from 'effect';
 import { SqlClient } from '@effect/sql';
 import type { SqlError } from '@effect/sql/SqlError';
 import { LibsqlClient } from '@effect/sql-libsql';
-import type { ParseError } from '@effect/schema/ParseResult';
-import { Schema, Serializable } from '@effect/schema';
+import * as Schema from 'effect/Schema';
+import type { ParseError } from 'effect/ParseResult';
 import { LibsqlSdk, WriteStatement } from './sql.js';
 
 const BoolFromNumber = Schema.transform(Schema.Number, Schema.Boolean, {
   strict: true,
-  decode: (fromA) => (fromA === 0 ? false : true),
-  encode: (toI) => (toI ? 1 : 0)
+  decode: (fromA: number) => (fromA === 0 ? false : true),
+  encode: (toI: boolean) => (toI ? 1 : 0)
 });
 
 const EventRecordInsert = Schema.Struct({
@@ -35,16 +35,18 @@ export class SaveEvents extends Effect.Service<SaveEvents>()('SaveEvents', {
         events,
         (e) =>
           pipe(
-            Serializable.serialize(e),
-            Effect.flatMap((e) =>
+            Schema.serialize(e),
+            Effect.flatMap((serialized) =>
               Schema.encode(EventRecordInsert)({
                 delivered: false,
-                messageId: e.messageId,
-                occurredOn: Schema.decodeSync(Schema.DateFromString)(e.occurredOn),
-                payload: JSON.stringify(e)
+                messageId: serialized.messageId,
+                occurredOn: Schema.decodeSync(Schema.DateFromString)(serialized.occurredOn),
+                payload: JSON.stringify(serialized)
               })
             ),
-            Effect.flatMap((e) => write(sql`insert into hex_effect_events ${sql.insert(e)};`))
+            Effect.flatMap((encoded) =>
+              write(sql`insert into hex_effect_events ${sql.insert(encoded)};`)
+            )
           ),
         {
           concurrency: 'unbounded'
@@ -73,7 +75,7 @@ export class GetUnpublishedEvents extends Context.Tag('@hex-effect/libsql/GetUnp
             json_extract(payload, '$._context') AS _context
           FROM hex_effect_events
           WHERE delivered = 0;`.pipe(
-            Effect.andThen(Schema.decodeUnknown(Schema.Array(UnpublishedEventRecord)))
+            Effect.flatMap(Schema.decodeUnknown(Schema.Array(UnpublishedEventRecord)))
           )
       )
     )
@@ -84,7 +86,7 @@ export class MarkAsPublished extends Effect.Service<MarkAsPublished>()('MarkAsPu
   effect: Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
 
-    const markAsPublished = (ids: (typeof UnpublishedEventRecord)['Type']['messageId'][]) =>
+    const markAsPublished = (ids: string[]) =>
       sql`update hex_effect_events set delivered = 1 where message_id in ${sql.in(ids)};`;
 
     return { markAsPublished };

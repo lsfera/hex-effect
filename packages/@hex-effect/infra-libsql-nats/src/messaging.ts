@@ -11,23 +11,23 @@ import {
   Struct,
   Supervisor
 } from 'effect';
-import {
-  connect,
-  type ConnectionOptions,
-  ErrorCode,
-  type NatsConnection,
-  NatsError as RawNatsError
-} from '@nats-io/transport-node';
+import { createRequire } from 'module';
+import type { ConnectionOptions, NatsConnection, connect as ConnectFn } from '@nats-io/transport-node';
+const { connect } = createRequire(import.meta.url)('@nats-io/transport-node') as {
+  connect: typeof ConnectFn;
+};
 import {
   AckPolicy,
   jetstream,
   jetstreamManager,
+  JetStreamApiCodes,
+  JetStreamApiError,
   RetentionPolicy,
   type ConsumerInfo,
   type ConsumerUpdateConfig,
   type JsMsg
 } from '@nats-io/jetstream';
-import { Schema } from '@effect/schema';
+import * as Schema from 'effect/Schema';
 import { EventBaseSchema, EventConsumer } from '@hex-effect/core';
 import { UnknownException } from 'effect/Cause';
 import { constTrue, constVoid, pipe } from 'effect/Function';
@@ -80,7 +80,7 @@ class EstablishedJetstream extends Effect.Service<EstablishedJetstream>()(
         jsm,
         js: jetstream(conn),
         appNamespace,
-        asSubject(e: typeof EventMetadata.Type): string {
+        asSubject(e: EventMetadata): string {
           return `${appNamespace}.${e._context}.${e._tag}`;
         }
       } as const;
@@ -102,7 +102,7 @@ export class PublishEvent extends Effect.Service<PublishEvent>()('@hex-effect/Pu
   dependencies: [EstablishedJetstream.Default]
 }) {}
 
-const EventMetadata = EventBaseSchema.pick('_context', '_tag');
+type EventMetadata = Pick<typeof EventBaseSchema.Type, '_context' | '_tag'>;
 
 class EventConsumerSupervisor extends Effect.Service<EventConsumerSupervisor>()(
   'EventConsumerSupervisor',
@@ -143,14 +143,8 @@ export class NatsEventConsumer extends Effect.Service<NatsEventConsumer>()(
         handler,
         config
       ) => {
-        const allSchemas = Schema.Union(...eventSchemas.map(Struct.get('schema'))) as Schema.Schema<
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          any,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          any,
-          // remove the `unknown` context.
-          never
-        >;
+        // cast removes the `unknown` context produced by Schema.Union
+        const allSchemas = Schema.Union(...eventSchemas.map(Struct.get('schema'))) as Schema.Schema.AnyNoContext;
         const subjects = eventSchemas.map((s) =>
           Context.get(ctx, EstablishedJetstream).asSubject(s.metadata)
         );
@@ -181,7 +175,7 @@ export class NatsEventConsumer extends Effect.Service<NatsEventConsumer>()(
                   c._tag === 'Fail'
                     ? Effect.sync(() => m.term())
                     : // could make this exponential
-                      Effect.sync(() => m.nak(m.info.redeliveryCount * 1000))
+                      Effect.sync(() => m.nak(m.info.deliveryCount * 1000))
               })
           ).pipe(Effect.ignoreLogged);
 
@@ -207,7 +201,8 @@ const upsertConsumer = (params: { $durableName: string; subjects: string[] }) =>
     ).pipe(
       Effect.map(constTrue),
       Effect.catchIf(
-        (e) => e.raw.code === ErrorCode.JetStream404NoMessages,
+        (e) =>
+          e.raw instanceof JetStreamApiError && e.raw.code === JetStreamApiCodes.ConsumerNotFound,
         () => Effect.succeed(false)
       )
     );
@@ -242,10 +237,7 @@ const createStream = (consumerInfo: ConsumerInfo) =>
     return Stream.fromAsyncIterable(consumer, (e) => new Error(`${e}`));
   });
 
-export class NatsError extends Data.TaggedError('NatsError')<{ raw: RawNatsError }> {
-  static isNatsError(e: unknown): e is RawNatsError {
-    return e instanceof RawNatsError;
-  }
+export class NatsError extends Data.TaggedError('NatsError')<{ raw: Error }> {
   get message() {
     return `${this.raw.message}\n${this.raw.stack}`;
   }
@@ -254,5 +246,5 @@ export class NatsError extends Data.TaggedError('NatsError')<{ raw: RawNatsError
 const callNats = <T>(operation: Promise<T>) =>
   Effect.tryPromise({
     try: () => operation,
-    catch: (e) => (NatsError.isNatsError(e) ? new NatsError({ raw: e }) : new UnknownException(e))
+    catch: (e) => (e instanceof Error ? new NatsError({ raw: e }) : new UnknownException(e))
   }).pipe(Effect.catchTag('UnknownException', (e) => Effect.die(e)));

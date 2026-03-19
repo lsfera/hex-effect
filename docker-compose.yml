@@ -1,6 +1,6 @@
 services:
   libsql:
-    image: ghcr.io/tursodatabase/libsql-server:main
+    image: ghcr.io/tursodatabase/libsql-server:latest
     ports:
       - '8080:8080'
     environment:
@@ -8,6 +8,31 @@ services:
     command: ['sqld', '--no-welcome', '--http-listen-addr', '0.0.0.0:8080']
     volumes:
       - libsql-data:/var/lib/sqld
+  studio:
+    build:
+      context: https://github.com/outerbase/studio.git
+      dockerfile_inline: |
+        FROM node:20-alpine AS builder
+        WORKDIR /app
+        COPY package*.json ./
+        RUN npm install
+        COPY . .
+        ARG NEXT_PUBLIC_OB_API=http://localhost:1
+        ENV NEXT_PUBLIC_OB_API=$NEXT_PUBLIC_OB_API
+        RUN npm run build
+        FROM node:20-alpine
+        
+        WORKDIR /app
+        COPY --from=builder /app/.next/standalone ./
+        COPY --from=builder /app/public ./public
+        COPY --from=builder /app/.next/static ./.next/static
+        CMD ["node", "server.js"]
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: 'http://libsql:8080'
+    depends_on:
+      - libsql
   nats:
     image: nats
     ports:
@@ -19,3 +44,8 @@ services:
 volumes:
   libsql-data:
   nats-data:
+
+networks:
+  default:
+    name: devcontainer
+    external: true

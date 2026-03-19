@@ -6,7 +6,7 @@ let globalPlatform: globalThis.App.Platform | undefined;
 
 process.on('sveltekit:shutdown', async () => {
   console.log('Disposing runtime...');
-  globalPlatform && (await globalPlatform.runtime.dispose());
+  if (globalPlatform) await globalPlatform.runtime.dispose();
   console.log('Done.');
 });
 

@@ -1,7 +1,6 @@
 import { describe, expect, layer } from '@effect/vitest';
-import { Effect, Config, Layer, Stream, Fiber, Chunk, Deferred, Struct } from 'effect';
+import { Effect, Config, Layer, Stream, Fiber, Chunk, Deferred, Struct, Schema } from 'effect';
 import { makeDomainEvent, UUIDGenerator } from '@hex-effect/core';
-import { Schema } from '@effect/schema';
 import { NatsClient, NatsConfig, NatsEventConsumer, PublishEvent } from '../messaging.js';
 import { UnpublishedEventRecord } from '../event-store.js';
 import { NatsContainer } from './util.js';
