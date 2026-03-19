@@ -1,7 +1,8 @@
 import { UUIDGenerator } from '@hex-effect/core';
 import { Live as InfraLive, NatsConfig, LibsqlConfig, LibsqlSdk } from '@hex-effect/infra-libsql-nats';
 import { Config, Effect, Layer } from 'effect';
-import { DeleteTaskLive, FindProjectByIdLive, GetAllProjectsLive, GetTasksByProjectIdLive, SaveProjectLive, SaveTaskLive } from './service.js';
+import { DeleteTaskLive, FindProjectByIdLive, FindTaskByIdLive, GetAllProjectsLive, GetTasksByProjectIdLive, SaveProjectLive, SaveTaskLive, UpdateTaskLive } from './service.js';
+import { EventHandlersLive } from './event-handlers.js';
 import type { Services } from '@projects/application';
 
 const ConfigLive = Layer.succeed(NatsConfig, {
@@ -59,7 +60,9 @@ const BaseLive = InfraLive.pipe(
   Layer.provideMerge(UUIDGenerator.Default)
 );
 
-export const Live = MigrationsLive.pipe(Layer.provideMerge(BaseLive));
+export const Live = Layer.mergeAll(MigrationsLive, EventHandlersLive).pipe(
+  Layer.provideMerge(BaseLive)
+);
 
 export const ServiceLive = Layer.mergeAll(
   SaveProjectLive,
@@ -67,5 +70,7 @@ export const ServiceLive = Layer.mergeAll(
   FindProjectByIdLive,
   SaveTaskLive,
   DeleteTaskLive,
-  GetTasksByProjectIdLive
-) satisfies Layer.Layer<Services.SaveProject | Services.GetAllProjects | Services.FindProjectById | Services.SaveTask | Services.DeleteTask | Services.GetTasksByProjectId, unknown, unknown>;
+  GetTasksByProjectIdLive,
+  FindTaskByIdLive,
+  UpdateTaskLive
+) satisfies Layer.Layer<Services.SaveProject | Services.GetAllProjects | Services.FindProjectById | Services.SaveTask | Services.DeleteTask | Services.GetTasksByProjectId | Services.FindTaskById | Services.UpdateTask, unknown, unknown>;

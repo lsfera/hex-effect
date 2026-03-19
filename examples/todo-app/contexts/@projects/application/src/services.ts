@@ -43,3 +43,17 @@ export class GetTasksByProjectId extends Context.Tag('@projects/application/GetT
     ) => Effect.Effect<ReadonlyArray<typeof Task.Model.Task.Type>, PersistenceError>;
   }
 >() {}
+
+export class FindTaskById extends Context.Tag('@projects/application/FindTaskById')<
+  FindTaskById,
+  {
+    findById: (
+      id: typeof Task.Model.TaskId.Type
+    ) => Effect.Effect<Option.Option<typeof Task.Model.Task.Type>, PersistenceError>;
+  }
+>() {}
+
+export class UpdateTask extends Context.Tag('@projects/application/UpdateTask')<
+  UpdateTask,
+  { update: (t: typeof Task.Model.Task.Type) => Effect.Effect<void, PersistenceError> }
+>() {}

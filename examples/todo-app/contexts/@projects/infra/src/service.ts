@@ -109,3 +109,30 @@ export const GetTasksByProjectIdLive = Layer.effect(
     }))
   )
 );
+
+export const FindTaskByIdLive = Layer.effect(
+  Services.FindTaskById,
+  SqlClient.SqlClient.pipe(
+    Effect.map((sql) => ({
+      findById: (id: typeof Task.Model.TaskId.Type) =>
+        sql`SELECT * FROM tasks WHERE id = ${id};`.pipe(
+          Effect.flatMap(Schema.decodeUnknown(Schema.Array(TaskFromSqlite))),
+          Effect.map((results) => Option.fromNullable(results[0])),
+          Effect.mapError((e) => new InfrastructureError({ cause: e }))
+        )
+    }))
+  )
+);
+
+export const UpdateTaskLive = Layer.effect(
+  Services.UpdateTask,
+  pipe(
+    Effect.zip(SqlClient.SqlClient, WriteStatement),
+    Effect.map(([sql, write]) => ({
+      update: (t: typeof Task.Model.Task.Type) =>
+        write(sql`UPDATE tasks SET completed = ${t.completed ? 1 : 0} WHERE id = ${t.id};`).pipe(
+          logAndMap
+        )
+    }))
+  )
+);

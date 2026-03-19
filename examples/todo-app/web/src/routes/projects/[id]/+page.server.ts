@@ -33,6 +33,21 @@ export const actions: Actions = {
       )
     );
   },
+  completeTask: async ({ request, platform }) => {
+    const data = await request.formData();
+    const taskId = data.get('taskId')?.toString();
+    if (!taskId) return { success: false, error: 'Task ID is required' };
+    return platform!.runtime.runPromise(
+      UseCases.completeTask(taskId).pipe(
+        Effect.provide(ServiceLive),
+        AppError.mapErrors,
+        Effect.match({
+          onFailure: () => ({ success: false, error: 'Failed to complete task' }),
+          onSuccess: () => ({ success: true })
+        })
+      )
+    );
+  },
   addTask: async ({ request, params, platform }) => {
     const data = await request.formData();
     const description = data.get('description')?.toString();

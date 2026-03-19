@@ -5,7 +5,7 @@
     "build": "rm -rf dist && bun build ./src/index.ts --packages 'external' --outdir ./dist --target node --sourcemap='linked' && tsc --emitDeclarationOnly --outDir ./dist",
     "check": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest"
+    "test": "vitest run"
   },
   "devDependencies": {
     "nanoid": "^5.1.7",

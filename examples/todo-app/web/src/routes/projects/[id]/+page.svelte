@@ -10,7 +10,15 @@
   <ul>
     {#each data.tasks as task}
       <li>
-        {task.description}
+        <span style={task.completed ? 'text-decoration: line-through; opacity: 0.6' : ''}>
+          {task.description}
+        </span>
+        {#if !task.completed}
+          <form method="POST" action="?/completeTask" use:enhance style="display:inline">
+            <input type="hidden" name="taskId" value={task.id} />
+            <button type="submit">Mark Complete</button>
+          </form>
+        {/if}
         <form method="POST" action="?/removeTask" use:enhance style="display:inline">
           <input type="hidden" name="taskId" value={task.id} />
           <button type="submit">Remove</button>
