@@ -31,10 +31,7 @@ export const BadgesInfraLive = EventHandlersLive.pipe(
   Layer.provide(Layer.merge(GetCompletedTaskCountLive, SaveBadgeLive))
 );
 
-export const BadgesServiceLive: Layer.Layer<
-  Services.GetAllBadges,
-  never,
-  SqlClient.SqlClient
-> = GetAllBadgesLive;
+export const BadgesServiceLive: Layer.Layer<Services.GetAllBadges, never, SqlClient.SqlClient> =
+  GetAllBadgesLive;
 
 export { UseCases as BadgesUseCases } from '@badges/application';

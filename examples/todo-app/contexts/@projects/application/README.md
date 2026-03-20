@@ -4,13 +4,14 @@ Application layer for the "projects & tasks" bounded context. Orchestrates domai
 
 ## Use Cases
 
-| Export | Description |
-|---|---|
-| `createProject(title)` | Creates a project and fires `ProjectCreatedEvent` |
+| Export                                         | Description                                                                    |
+| ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| `createProject(title)`                         | Creates a project and fires `ProjectCreatedEvent`                              |
 | `addTaskToProject({ projectId, description })` | Adds a task to an existing project; fails with `ApplicationError` if not found |
-| `getAllProjects` | Returns all projects |
+| `getAllProjects`                               | Returns all projects                                                           |
 
 All mutating use cases are wrapped with `withTXBoundary(IsolationLevel.Batched)`, which:
+
 - Executes the use case within an atomic database batch
 - Persists returned domain events to the event store
 - Triggers the `EventPublisherDaemon` to forward events to NATS
@@ -19,12 +20,12 @@ All mutating use cases are wrapped with `withTXBoundary(IsolationLevel.Batched)`
 
 Abstract `Context.Tag` services that the application layer depends on. Implementations are provided by `@projects/infra`.
 
-| Service | Description |
-|---|---|
-| `SaveProject` | Persist a `Project` aggregate |
-| `GetAllProjects` | Retrieve all projects |
+| Service           | Description                                |
+| ----------------- | ------------------------------------------ |
+| `SaveProject`     | Persist a `Project` aggregate              |
+| `GetAllProjects`  | Retrieve all projects                      |
 | `FindProjectById` | Look up a project by ID (returns `Option`) |
-| `SaveTask` | Persist a `Task` aggregate |
+| `SaveTask`        | Persist a `Task` aggregate                 |
 
 ## Error Handling
 

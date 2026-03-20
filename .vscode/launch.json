@@ -7,11 +7,7 @@
       "request": "launch",
       "cwd": "${workspaceFolder}/examples/todo-app/web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": [
-        "dev",
-        "--",
-        "--host"
-      ],
+      "runtimeArgs": ["dev", "--", "--host"],
       "env": {
         "DATABASE_URL": "http://libsql:8080",
         "NATS_SERVER": "nats://nats:4222",
@@ -22,9 +18,7 @@
       "autoAttachChildProcesses": true,
       "sourceMaps": true,
       "console": "integratedTerminal",
-      "skipFiles": [
-        "<node_internals>/**"
-      ]
+      "skipFiles": ["<node_internals>/**"]
     },
     {
       "name": "Todo App (browser)",
@@ -40,10 +34,7 @@
   "compounds": [
     {
       "name": "Todo App (full stack)",
-      "configurations": [
-        "Todo App (server)",
-        "Todo App (browser)"
-      ],
+      "configurations": ["Todo App (server)", "Todo App (browser)"],
       "stopAll": true
     }
   ]

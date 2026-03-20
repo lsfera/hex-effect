@@ -18,12 +18,12 @@ pnpm add @hex-effect/core
 
 The base `Schema.Struct` shared by all domain events. Contains:
 
-| Field | Type | Description |
-|---|---|---|
-| `_tag` | `string` | Event type name |
-| `_context` | `string` | Bounded context name |
-| `occurredOn` | `Date` | When the event occurred |
-| `messageId` | `string` | Unique message ID (nanoid) |
+| Field        | Type     | Description                |
+| ------------ | -------- | -------------------------- |
+| `_tag`       | `string` | Event type name            |
+| `_context`   | `string` | Bounded context name       |
+| `occurredOn` | `Date`   | When the event occurred    |
+| `messageId`  | `string` | Unique message ID (nanoid) |
 
 #### `makeDomainEvent(metadata, fields)`
 
@@ -41,7 +41,7 @@ export const ProjectCreatedEvent = makeDomainEvent(
 );
 
 // Create an event instance (requires UUIDGenerator in context):
-const event = yield* ProjectCreatedEvent.make({ id: someProjectId });
+const event = yield * ProjectCreatedEvent.make({ id: someProjectId });
 ```
 
 `makeDomainEvent` returns an `EventSchemas` object with:
@@ -103,10 +103,10 @@ The resulting `Effect` requires `WithTransaction` in its context, which is provi
 
 ```typescript
 enum IsolationLevel {
-  ReadCommitted   = 'ReadCommitted',
+  ReadCommitted = 'ReadCommitted',
   RepeatableReads = 'RepeatableReads',
-  Serializable    = 'Serializable',
-  Batched         = 'Batched'   // LibSQL / D1: all writes committed atomically at end of tx
+  Serializable = 'Serializable',
+  Batched = 'Batched' // LibSQL / D1: all writes committed atomically at end of tx
 }
 ```
 
@@ -179,8 +179,8 @@ Generates unique IDs using [nanoid](https://github.com/ai/nanoid). Required by `
 
 ```typescript
 // Default implementation (uses nanoid):
-UUIDGenerator.Default
+UUIDGenerator.Default;
 
 // In tests, provide a deterministic override:
-Layer.succeed(UUIDGenerator, { generate: () => 'fixed-id' })
+Layer.succeed(UUIDGenerator, { generate: () => 'fixed-id' });
 ```

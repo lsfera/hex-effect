@@ -49,7 +49,7 @@ Layer.succeed(LibsqlConfig, {
     url: Config.string('DATABASE_URL'),
     authToken: Config.string('DATABASE_AUTH_TOKEN').pipe(Config.withDefault(undefined))
   })
-})
+});
 ```
 
 ### `NatsConfig`
@@ -62,7 +62,7 @@ Layer.succeed(NatsConfig, {
     servers: Config.string('NATS_SERVER')
   }),
   appNamespace: Config.string('APP_NAMESPACE')
-})
+});
 ```
 
 `appNamespace` is used as the NATS stream name and subject prefix (e.g. `my-app.@projects.ProjectCreatedEvent`).
@@ -98,12 +98,11 @@ After a successful commit, `WithTransactionLive` publishes a notification to `Us
 Maps `NatsEventConsumer` to the abstract `EventConsumer` interface. Use it to register handlers for domain events:
 
 ```typescript
-const handler = yield* EventConsumer;
-yield* handler.register(
-  [ProjectCreatedEvent],
-  (event) => Effect.log(`Project created: ${event.id}`),
-  { $durableName: 'send-welcome-email' }
-);
+const handler = yield * EventConsumer;
+yield *
+  handler.register([ProjectCreatedEvent], (event) => Effect.log(`Project created: ${event.id}`), {
+    $durableName: 'send-welcome-email'
+  });
 ```
 
 - Each `$durableName` corresponds to a durable NATS consumer — messages are re-delivered on failure.
@@ -126,7 +125,7 @@ Because events are durably stored before the daemon publishes them, event delive
 Manages the raw `@libsql/client` SDK lifecycle (acquire on startup, close on shutdown). Exposed for use cases that need direct SDK access (e.g. running migrations via `sdk.migrate()`).
 
 ```typescript
-const { sdk } = yield* LibsqlSdk;
+const { sdk } = yield * LibsqlSdk;
 await sdk.migrate([{ sql: 'CREATE TABLE ...', args: [] }]);
 ```
 
@@ -137,8 +136,8 @@ A `Context.Tag` for executing SQL write statements. Normally delegates to the Li
 Use `WriteStatement` instead of calling `sql` directly for all INSERT/UPDATE/DELETE operations so they participate correctly in `Batched` transactions:
 
 ```typescript
-const write = yield* WriteStatement;
-yield* write(sql`INSERT INTO people ${sql.insert(record)}`);
+const write = yield * WriteStatement;
+yield * write(sql`INSERT INTO people ${sql.insert(record)}`);
 ```
 
 ## Event Store

@@ -12,12 +12,12 @@ Aggregates, value objects, domain events, and pure domain functions — all defi
 import { Project } from '@projects/domain';
 
 // Value object
-Project.Model.ProjectId   // branded string
-Project.Model.Project     // Schema.Struct { id, title }
-Project.Model.ProjectCreatedEvent  // EventSchemas — use .make() to create instances
+Project.Model.ProjectId; // branded string
+Project.Model.Project; // Schema.Struct { id, title }
+Project.Model.ProjectCreatedEvent; // EventSchemas — use .make() to create instances
 
 // Domain function
-const [project, event] = yield* Project.Service.createProject('My Project');
+const [project, event] = yield * Project.Service.createProject('My Project');
 ```
 
 ### Task
@@ -25,12 +25,12 @@ const [project, event] = yield* Project.Service.createProject('My Project');
 ```typescript
 import { Task } from '@projects/domain';
 
-Task.Model.TaskId          // branded string
-Task.Model.Task            // Schema.Struct { id, projectId, description, completed }
-Task.Model.TaskAddedEvent
-Task.Model.TaskCompletedEvent
+Task.Model.TaskId; // branded string
+Task.Model.Task; // Schema.Struct { id, projectId, description, completed }
+Task.Model.TaskAddedEvent;
+Task.Model.TaskCompletedEvent;
 
-const [task, event] = yield* Task.Service.addTaskToProject(project, 'Fix the bug');
+const [task, event] = yield * Task.Service.addTaskToProject(project, 'Fix the bug');
 ```
 
 ## Design Notes

@@ -27,8 +27,14 @@ export const mapErrors = <A, E extends PersistenceError | ParseError, R>(
     effect,
     Match.type<E | ApplicationError>().pipe(
       Match.when(Match.instanceOf(ApplicationError), (e) => e),
-      Match.when(isPersistenceError, () => new ApplicationError({ kind: ErrorKinds.Infrastructure })),
-      Match.when(isTagged('ParseError'), () => new ApplicationError({ kind: ErrorKinds.BadRequest })),
+      Match.when(
+        isPersistenceError,
+        () => new ApplicationError({ kind: ErrorKinds.Infrastructure })
+      ),
+      Match.when(
+        isTagged('ParseError'),
+        () => new ApplicationError({ kind: ErrorKinds.BadRequest })
+      ),
       Match.orElse((e) => e as Exclude<E, PersistenceError | ParseError>)
     ) as (e: E | ApplicationError) => ApplicationError | Exclude<E, PersistenceError | ParseError>
   );

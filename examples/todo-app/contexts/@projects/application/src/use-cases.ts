@@ -1,15 +1,28 @@
 import { Project, Task } from '@projects/domain';
 import { Context, Effect, Option, Either } from 'effect';
-import { DeleteTask, FindProjectById, FindTaskById, GetAllProjects, GetTasksByProjectId, SaveProject, SaveTask, UpdateTask } from './services.js';
+import {
+  DeleteTask,
+  FindProjectById,
+  FindTaskById,
+  GetAllProjects,
+  GetTasksByProjectId,
+  SaveProject,
+  SaveTask,
+  UpdateTask
+} from './services.js';
 import { IsolationLevel, withTXBoundary } from '@hex-effect/core';
 import { ApplicationError, ErrorKinds } from './error.js';
 
-const findOrNotFound = (<E2>(onNone: () => E2) => <Id, Entity, E, R>(
-  tag: Context.Tag<R, { findById: (id: Id) => Effect.Effect<Option.Option<Entity>, E, never>; }>,
-  id: Id
-) => Effect.serviceFunctions(tag)
-  .findById(id)
-  .pipe(Effect.flatMap((opt) => Either.fromOption(opt, onNone))))(() => new ApplicationError({ kind: ErrorKinds.NotFound }));
+const findOrNotFound = (
+  <E2>(onNone: () => E2) =>
+  <Id, Entity, E, R>(
+    tag: Context.Tag<R, { findById: (id: Id) => Effect.Effect<Option.Option<Entity>, E, never> }>,
+    id: Id
+  ) =>
+    Effect.serviceFunctions(tag)
+      .findById(id)
+      .pipe(Effect.flatMap((opt) => Either.fromOption(opt, onNone)))
+)(() => new ApplicationError({ kind: ErrorKinds.NotFound }));
 
 export const createProject = (title: string) =>
   Project.Service.createProject(title).pipe(
@@ -59,4 +72,3 @@ export const getProjectWithTasks = (projectId: string) =>
         })
       )
     );
-

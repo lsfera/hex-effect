@@ -77,11 +77,11 @@ Badge    { id: BadgeId, badgeType: 'trailblazer'|'momentum'|'achiever', awardedA
 
 Badge milestones are awarded based on total completed task count (global, across all projects):
 
-| Count | Badge |
-|-------|-------|
-| 1  | trailblazer |
-| 5  | momentum    |
-| 10 | achiever    |
+| Count | Badge       |
+| ----- | ----------- |
+| 1     | trailblazer |
+| 5     | momentum    |
+| 10    | achiever    |
 
 ### Application Layer
 
@@ -112,7 +112,7 @@ export const checkAndAwardBadges = Effect.gen(function* () {
 **`GetCompletedTaskCountLive`** — the synchronous cross-domain read:
 
 ```typescript
-sql`SELECT COUNT(*) as count FROM tasks WHERE completed = 1;`
+sql`SELECT COUNT(*) as count FROM tasks WHERE completed = 1;`;
 ```
 
 This queries the `tasks` table owned by `@projects`. Both contexts share the same LibSQL database in this deployment; the service port (`GetCompletedTaskCount`) is the anti-corruption layer that keeps `@badges/application` from knowing this detail.
@@ -199,7 +199,7 @@ Query services (used per-request) are provided separately:
 
 ```typescript
 platform.runtime.runPromise(
-  myUseCase.pipe(Effect.provide(ServiceLive))   // SQL read implementations
+  myUseCase.pipe(Effect.provide(ServiceLive)) // SQL read implementations
 );
 ```
 

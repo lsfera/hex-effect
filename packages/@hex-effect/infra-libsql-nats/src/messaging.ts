@@ -12,7 +12,11 @@ import {
   Supervisor
 } from 'effect';
 import { createRequire } from 'module';
-import type { ConnectionOptions, NatsConnection, connect as ConnectFn } from '@nats-io/transport-node';
+import type {
+  ConnectionOptions,
+  NatsConnection,
+  connect as ConnectFn
+} from '@nats-io/transport-node';
 const { connect } = createRequire(import.meta.url)('@nats-io/transport-node') as {
   connect: typeof ConnectFn;
 };
@@ -144,7 +148,9 @@ export class NatsEventConsumer extends Effect.Service<NatsEventConsumer>()(
         config
       ) => {
         // cast removes the `unknown` context produced by Schema.Union
-        const allSchemas = Schema.Union(...eventSchemas.map(Struct.get('schema'))) as Schema.Schema.AnyNoContext;
+        const allSchemas = Schema.Union(
+          ...eventSchemas.map(Struct.get('schema'))
+        ) as Schema.Schema.AnyNoContext;
         const subjects = eventSchemas.map((s) =>
           Context.get(ctx, EstablishedJetstream).asSubject(s.metadata)
         );
@@ -210,12 +216,18 @@ const upsertConsumer = (params: { $durableName: string; subjects: string[] }) =>
     );
 
     return yield* Effect.if(consumerExists, {
-      onTrue: () => callNats(stream.jsm.consumers.update(stream.streamInfo.config.name, params.$durableName, config)),
-      onFalse: () => callNats(stream.jsm.consumers.add(stream.streamInfo.config.name, {
-        ...config,
-        ack_policy: AckPolicy.Explicit,
-        durable_name: params.$durableName
-      }))
+      onTrue: () =>
+        callNats(
+          stream.jsm.consumers.update(stream.streamInfo.config.name, params.$durableName, config)
+        ),
+      onFalse: () =>
+        callNats(
+          stream.jsm.consumers.add(stream.streamInfo.config.name, {
+            ...config,
+            ack_policy: AckPolicy.Explicit,
+            durable_name: params.$durableName
+          })
+        )
     });
     // the only allowable error is handled above
   }).pipe(Effect.orDie, Effect.tap(Effect.logDebug(`Added handler for ${params.$durableName}`)));

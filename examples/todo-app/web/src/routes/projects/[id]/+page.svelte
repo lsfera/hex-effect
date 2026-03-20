@@ -18,12 +18,13 @@
           <form
             method="POST"
             action="?/completeTask"
-            use:enhance={() => async ({ update }) => {
-              await update();
-              // Badge award is async (event → NATS → handler → DB).
-              // Re-fetch after a short delay so badges show up.
-              setTimeout(() => invalidateAll(), 800);
-            }}
+            use:enhance={() =>
+              async ({ update }) => {
+                await update();
+                // Badge award is async (event → NATS → handler → DB).
+                // Re-fetch after a short delay so badges show up.
+                setTimeout(() => invalidateAll(), 800);
+              }}
             style="display:inline"
           >
             <input type="hidden" name="taskId" value={task.id} />

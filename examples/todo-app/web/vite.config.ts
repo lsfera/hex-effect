@@ -15,10 +15,7 @@ export default defineConfig({
         __dirname,
         '../contexts/@projects/application/src/index.ts'
       ),
-      '@projects/domain': path.resolve(
-        __dirname,
-        '../contexts/@projects/domain/src/index.ts'
-      ),
+      '@projects/domain': path.resolve(__dirname, '../contexts/@projects/domain/src/index.ts'),
       '@hex-effect/core': path.resolve(__dirname, '../../../packages/@hex-effect/core/index.ts'),
       '@hex-effect/infra-libsql-nats': path.resolve(
         __dirname,

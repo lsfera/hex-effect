@@ -81,11 +81,13 @@ export const WithTransactionLive = Layer.effect(
         Effect.mapError((e) => (isTaggedError(e) ? classifySqlError(e) : e))
       );
 
-      return Match.value(isolationLevel).pipe(
-        Match.when(IsolationLevel.Batched, () => batched),
-        Match.when(IsolationLevel.Serializable, () => serializable),
-        Match.orElse(() => Effect.dieMessage(`${isolationLevel} not supported`))
-      ).pipe(Effect.tap(() => pub.publish()));
+      return Match.value(isolationLevel)
+        .pipe(
+          Match.when(IsolationLevel.Batched, () => batched),
+          Match.when(IsolationLevel.Serializable, () => serializable),
+          Match.orElse(() => Effect.dieMessage(`${isolationLevel} not supported`))
+        )
+        .pipe(Effect.tap(() => pub.publish()));
     };
   })
 ).pipe(

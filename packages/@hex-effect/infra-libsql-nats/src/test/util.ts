@@ -64,7 +64,9 @@ export class NatsContainer extends Context.Tag('test/NatsContainer')<
           const container = yield* NatsContainer;
           return Layer.succeed(NatsConfig, {
             config: {
-              servers: Config.succeed(`nats://${container.getHost()}:${container.getMappedPort(4222)}`)
+              servers: Config.succeed(
+                `nats://${container.getHost()}:${container.getMappedPort(4222)}`
+              )
             },
             appNamespace: Config.succeed('KRALF')
           });

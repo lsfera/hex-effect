@@ -1,6 +1,6 @@
 # Hex-Effect
 
-A reference implementation of [Hexagonal Architecture](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)) for [Domain-Driven Design](https://www.domainlanguage.com/ddd/), written in TypeScript with [`Effect`](https://effect.website/).
+A reference implementation of [Hexagonal Architecture](<https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)>) for [Domain-Driven Design](https://www.domainlanguage.com/ddd/), written in TypeScript with [`Effect`](https://effect.website/).
 
 ## Overview
 
@@ -93,10 +93,10 @@ pnpm dev
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| [`@hex-effect/core`](./packages/@hex-effect/core/README.md) | Base types for domain events, transactions, and service ports |
-| [`@hex-effect/infra-libsql-nats`](./packages/@hex-effect/infra-libsql-nats/README.md) | Ready-to-use infrastructure adapter for LibSQL + NATS |
+| Package                                                                               | Description                                                   |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| [`@hex-effect/core`](./packages/@hex-effect/core/README.md)                           | Base types for domain events, transactions, and service ports |
+| [`@hex-effect/infra-libsql-nats`](./packages/@hex-effect/infra-libsql-nats/README.md) | Ready-to-use infrastructure adapter for LibSQL + NATS         |
 
 ## Example Application
 
