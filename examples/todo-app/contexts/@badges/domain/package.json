@@ -1,5 +1,5 @@
 {
-  "name": "@projects/infra",
+  "name": "@badges/domain",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -8,6 +8,9 @@
     "build": "rm -rf dist && bun build ./src/index.ts --packages 'external' --outdir ./dist --target node --sourcemap='linked' && tsc --emitDeclarationOnly --outDir ./dist"
   },
   "devDependencies": {},
+  "dependencies": {
+    "@hex-effect/core": "workspace:*"
+  },
   "type": "module",
   "exports": {
     "node": {
@@ -17,12 +20,5 @@
     "default": {
       "default": "./src/index.ts"
     }
-  },
-  "dependencies": {
-    "@projects/application": "workspace:*",
-    "@projects/domain": "workspace:*",
-    "@hex-effect/core": "workspace:*",
-    "@hex-effect/infra-libsql-nats": "workspace:*",
-    "@badges/infra": "workspace:*"
   }
 }

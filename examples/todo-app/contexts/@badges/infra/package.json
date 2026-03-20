@@ -1,5 +1,5 @@
 {
-  "name": "@projects/infra",
+  "name": "@badges/infra",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -19,10 +19,10 @@
     }
   },
   "dependencies": {
-    "@projects/application": "workspace:*",
+    "@badges/application": "workspace:*",
+    "@badges/domain": "workspace:*",
     "@projects/domain": "workspace:*",
     "@hex-effect/core": "workspace:*",
-    "@hex-effect/infra-libsql-nats": "workspace:*",
-    "@badges/infra": "workspace:*"
+    "@hex-effect/infra-libsql-nats": "workspace:*"
   }
 }

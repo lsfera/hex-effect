@@ -3,6 +3,8 @@ import { Live as InfraLive, NatsConfig, LibsqlConfig, LibsqlSdk } from '@hex-eff
 import { Config, Effect, Layer } from 'effect';
 import { DeleteTaskLive, FindProjectByIdLive, FindTaskByIdLive, GetAllProjectsLive, GetTasksByProjectIdLive, SaveProjectLive, SaveTaskLive, UpdateTaskLive } from './service.js';
 import { EventHandlersLive } from './event-handlers.js';
+import { BadgesInfraLive } from '@badges/infra';
+export { BadgesServiceLive, BadgesUseCases } from '@badges/infra';
 import type { Services } from '@projects/application';
 
 const ConfigLive = Layer.succeed(NatsConfig, {
@@ -47,6 +49,14 @@ const MigrationsLive = Layer.unwrapEffect(
               FOREIGN KEY (project_id) REFERENCES projects(id)
             );`,
             args: []
+          },
+          {
+            sql: `CREATE TABLE IF NOT EXISTS badges (
+              id TEXT PRIMARY KEY NOT NULL,
+              badge_type TEXT NOT NULL,
+              awarded_at INTEGER NOT NULL
+            );`,
+            args: []
           }
         ])
       )
@@ -60,7 +70,7 @@ const BaseLive = InfraLive.pipe(
   Layer.provideMerge(UUIDGenerator.Default)
 );
 
-export const Live = Layer.mergeAll(MigrationsLive, EventHandlersLive).pipe(
+export const Live = Layer.mergeAll(MigrationsLive, EventHandlersLive, BadgesInfraLive).pipe(
   Layer.provideMerge(BaseLive)
 );
 

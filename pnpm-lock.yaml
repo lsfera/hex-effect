@@ -67,6 +67,39 @@ importers:
         specifier: ^3.2.0
         version: 3.2.4(@types/node@25.5.0)(lightningcss@1.32.0)(yaml@2.8.2)
 
+  examples/todo-app/contexts/@badges/application:
+    dependencies:
+      '@badges/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@hex-effect/core':
+        specifier: workspace:*
+        version: link:../../../../../packages/@hex-effect/core
+
+  examples/todo-app/contexts/@badges/domain:
+    dependencies:
+      '@hex-effect/core':
+        specifier: workspace:*
+        version: link:../../../../../packages/@hex-effect/core
+
+  examples/todo-app/contexts/@badges/infra:
+    dependencies:
+      '@badges/application':
+        specifier: workspace:*
+        version: link:../application
+      '@badges/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@hex-effect/core':
+        specifier: workspace:*
+        version: link:../../../../../packages/@hex-effect/core
+      '@hex-effect/infra-libsql-nats':
+        specifier: workspace:*
+        version: link:../../../../../packages/@hex-effect/infra-libsql-nats
+      '@projects/domain':
+        specifier: workspace:*
+        version: link:../../@projects/domain
+
   examples/todo-app/contexts/@projects/application:
     dependencies:
       '@hex-effect/core':
@@ -84,6 +117,9 @@ importers:
 
   examples/todo-app/contexts/@projects/infra:
     dependencies:
+      '@badges/infra':
+        specifier: workspace:*
+        version: link:../../@badges/infra
       '@hex-effect/core':
         specifier: workspace:*
         version: link:../../../../../packages/@hex-effect/core
