@@ -6,7 +6,7 @@ import { Model, SqlClient, SqlError, SqlResolver } from '@effect/sql';
 import { makeDomainEvent } from '@hex-effect/core';
 import { nanoid } from 'nanoid';
 import { LibsqlConfig, LibsqlSdk, WriteStatement } from '../sql.js';
-import { NatsClient, NatsConfig } from '../messaging.js';
+import { NatsClient, NatsConfig } from '@hex-effect/infra-nats';
 
 export class LibsqlContainer extends Context.Tag('test/LibsqlContainer')<
   LibsqlContainer,

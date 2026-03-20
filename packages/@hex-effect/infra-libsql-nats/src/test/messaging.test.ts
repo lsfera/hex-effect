@@ -12,8 +12,13 @@ import {
   Queue
 } from 'effect';
 import { EventBaseSchema, makeDomainEvent, UUIDGenerator } from '@hex-effect/core';
-import { NatsClient, NatsConfig, NatsEventConsumer, PublishEvent } from '../messaging.js';
-import { UnpublishedEventRecord } from '../event-store.js';
+import {
+  NatsClient,
+  NatsConfig,
+  NatsEventConsumer,
+  PublishEvent,
+  UnpublishedEventRecord
+} from '@hex-effect/infra-nats';
 import { NatsContainer } from './util.js';
 
 const SomeEvent = makeDomainEvent(

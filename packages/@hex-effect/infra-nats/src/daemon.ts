@@ -1,5 +1,5 @@
 import { Array, Effect, Layer, pipe, Stream, Struct } from 'effect';
-import { UseCaseCommit } from './transactional-boundary.js';
+import { UseCaseCommit } from './commit.js';
 import { GetUnpublishedEvents, MarkAsPublished, SaveEvents } from './event-store.js';
 import { PublishEvent } from './messaging.js';
 

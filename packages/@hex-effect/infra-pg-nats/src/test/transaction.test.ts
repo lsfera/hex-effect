@@ -8,23 +8,20 @@ import {
   SaveEvents,
   UseCaseCommit
 } from '@hex-effect/infra-nats';
-import { LibsqlSdk } from '../sql.js';
 import { WithTransactionLive } from '../transactional-boundary.js';
-import { addPerson, LibsqlContainer, Migrations, PersonCreatedEvent, PersonId } from './util.js';
+import { addPerson, Migrations, PgContainer, PersonCreatedEvent, PersonId } from './util.js';
 
 const TestLive = Migrations.pipe(
-  // provide/merge all these internal services so that I can test behavior
   Layer.provideMerge(UseCaseCommit.live),
   Layer.provideMerge(GetUnpublishedEvents.live),
   Layer.provideMerge(SaveEvents.Default),
   Layer.provideMerge(MarkAsPublished.Default),
   Layer.provideMerge(WithTransactionLive),
-  Layer.provideMerge(LibsqlSdk.Default),
   Layer.provideMerge(UUIDGenerator.Default)
 );
 
-describe('WithTransaction', () => {
-  layer(LibsqlContainer.ConfigLive)((it) => {
+describe('WithTransaction (PG)', () => {
+  layer(PgContainer.ConfigLive)((it) => {
     const countCommits = Effect.serviceConstants(UseCaseCommit).subscribe.pipe(
       Effect.andThen((queue) => Stream.fromQueue(queue).pipe(Stream.runCount, Effect.fork))
     );
@@ -33,14 +30,14 @@ describe('WithTransaction', () => {
       Effect.gen(function* () {
         const count = yield* countCommits;
         const sql = yield* SqlClient.SqlClient;
-        yield* addPerson('Jeffrey ').pipe(
+        yield* addPerson('Jeffrey').pipe(
           Effect.andThen(Effect.fail('boom')),
           withTXBoundary(IsolationLevel.Serializable),
           Effect.ignore
         );
         const res = yield* sql<{
           count: number;
-        }>`select count(*) as count from people;`;
+        }>`SELECT count(*)::int AS count FROM people`;
         expect(res.at(0)!.count).toEqual(0);
         yield* Effect.serviceConstants(UseCaseCommit).shutdown;
         expect(yield* Fiber.join(count)).toEqual(0);
@@ -51,14 +48,14 @@ describe('WithTransaction', () => {
       Effect.gen(function* () {
         const count = yield* countCommits;
         const sql = yield* SqlClient.SqlClient;
-        yield* addPerson('Jeffrey ').pipe(
+        yield* addPerson('Jeffrey').pipe(
           Effect.andThen(Effect.fail('boom')),
           withTXBoundary(IsolationLevel.Batched),
           Effect.ignore
         );
         const res = yield* sql<{
           count: number;
-        }>`select count(*) as count from people;`;
+        }>`SELECT count(*)::int AS count FROM people`;
         expect(res.at(0)!.count).toEqual(0);
         yield* Effect.serviceConstants(UseCaseCommit).shutdown;
         expect(yield* Fiber.join(count)).toEqual(0);
@@ -72,7 +69,7 @@ describe('WithTransaction', () => {
         const [event] = yield* addPerson('Kralf').pipe(withTXBoundary(IsolationLevel.Batched));
         const res = yield* sql<{
           name: string;
-        }>`select * from people;`;
+        }>`SELECT * FROM people`;
         expect(res.at(0)!.name).toEqual('Kralf');
         const events = yield* Effect.serviceFunctionEffect(GetUnpublishedEvents, identity)();
         expect(event).toMatchObject(
@@ -90,7 +87,7 @@ describe('WithTransaction', () => {
         const [event] = yield* addPerson('Kralf').pipe(withTXBoundary(IsolationLevel.Serializable));
         const res = yield* sql<{
           name: string;
-        }>`select * from people;`;
+        }>`SELECT * FROM people`;
         expect(res.at(0)!.name).toEqual('Kralf');
         const events = yield* Effect.serviceFunctionEffect(GetUnpublishedEvents, identity)();
         expect(event).toMatchObject(

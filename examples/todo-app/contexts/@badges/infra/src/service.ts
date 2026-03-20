@@ -1,7 +1,7 @@
 import { Effect, Layer, Schema } from 'effect';
 import { SqlClient } from '@effect/sql';
 import { InfrastructureError } from '@hex-effect/core';
-import { WriteStatement } from '@hex-effect/infra-libsql-nats';
+import { WriteStatement } from '@hex-effect/infra-nats';
 import { Services } from '@badges/application';
 import { Badge } from '@badges/domain';
 
@@ -21,13 +21,17 @@ export const GetCompletedTaskCountLive = Layer.effect(
   )
 );
 
-const BadgeFromSqlite = Schema.Struct({
+// Handles both SQLite (epoch ms as INTEGER) and PostgreSQL (Date object from TIMESTAMPTZ)
+const BadgeFromDb = Schema.Struct({
   id: Badge.BadgeId,
   badgeType: Badge.BadgeType,
-  awardedAt: Schema.transform(Schema.Number, Schema.DateFromSelf, {
-    decode: (n) => new Date(n),
-    encode: (d) => d.getTime()
-  })
+  awardedAt: Schema.Union(
+    Schema.DateFromSelf,
+    Schema.transform(Schema.Number, Schema.DateFromSelf, {
+      decode: (n) => new Date(n),
+      encode: (d) => d.getTime()
+    })
+  )
 });
 
 export const GetAllBadgesLive = Layer.effect(
@@ -36,7 +40,7 @@ export const GetAllBadgesLive = Layer.effect(
     Effect.map((sql) => ({
       getAll: () =>
         sql`SELECT * FROM badges ORDER BY awarded_at DESC;`.pipe(
-          Effect.flatMap(Schema.decodeUnknown(Schema.Array(BadgeFromSqlite))),
+          Effect.flatMap(Schema.decodeUnknown(Schema.Array(BadgeFromDb))),
           Effect.mapError((e) => new InfrastructureError({ cause: e }))
         )
     }))

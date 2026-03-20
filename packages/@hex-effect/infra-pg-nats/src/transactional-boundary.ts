@@ -5,38 +5,34 @@ import {
   WithTransaction,
   type EncodableEventBase
 } from '@hex-effect/core';
-import { Effect, Layer, Match, Ref } from 'effect';
-import { type Statement } from '@effect/sql';
-import { LibsqlClient } from '@effect/sql-libsql';
-import { type InValue } from '@libsql/client';
+import { Effect, Layer, Match } from 'effect';
+import { SqlClient } from '@effect/sql';
 import { isTagged } from 'effect/Predicate';
-import { LibsqlClientLive, LibsqlSdk, WriteStatement } from './sql.js';
-import { EventStoreLive, SaveEvents, UseCaseCommit } from '@hex-effect/infra-nats';
+import { WriteStatement, EventStoreLive, SaveEvents, UseCaseCommit } from '@hex-effect/infra-nats';
+import { PgClientLive } from './sql.js';
 
 const isTaggedError = (e: unknown) => isTagged(e, 'SqlError') || isTagged(e, 'ParseError');
 
-// LibsqlError.code starts with 'SQLITE_CONSTRAINT' for unique/fk/check/notnull violations.
-// Everything else (network, malformed SQL, I/O) is an infrastructure problem.
-const isConstraintViolation = (e: unknown): boolean => {
+// PostgreSQL constraint violation class codes (class 23 = integrity constraint violation)
+const isPgConstraintViolation = (e: unknown): boolean => {
   const raw = isTagged(e, 'SqlError') ? (e as unknown as { cause: unknown }).cause : e;
   return (
     raw instanceof Error &&
     'code' in raw &&
     typeof (raw as Error & { code: unknown }).code === 'string' &&
-    (raw as Error & { code: string }).code.startsWith('SQLITE_CONSTRAINT')
+    (raw as Error & { code: string }).code.startsWith('23')
   );
 };
 
 const classifySqlError = (e: unknown): DataIntegrityError | InfrastructureError =>
-  isConstraintViolation(e)
+  isPgConstraintViolation(e)
     ? new DataIntegrityError({ cause: e })
     : new InfrastructureError({ cause: e });
 
 export const WithTransactionLive = Layer.effect(
   WithTransaction,
   Effect.gen(function* () {
-    const client = yield* LibsqlClient.LibsqlClient;
-    const sdk = yield* LibsqlSdk.sdk;
+    const client = yield* SqlClient.SqlClient;
 
     const { save } = yield* SaveEvents;
     const pub = yield* UseCaseCommit;
@@ -49,26 +45,7 @@ export const WithTransactionLive = Layer.effect(
         Effect.mapError((e) => (isTaggedError(e) ? classifySqlError(e) : e))
       );
 
-      const batched = Effect.gen(function* () {
-        const ref = yield* Ref.make<Statement.Statement<unknown>[]>([]);
-        const results = yield* WriteStatement.withExecutor(useCaseWithEventStorage, (stm) =>
-          Ref.update(ref, (a) => [...a, stm])
-        );
-        const writes = yield* Ref.get(ref);
-        yield* Effect.tryPromise(() =>
-          sdk.batch(
-            writes.map((w) => {
-              const [sql, args] = w.compile();
-              return { args: args as Array<InValue>, sql };
-            })
-          )
-        ).pipe(
-          Effect.mapError((e) => classifySqlError(e.error)),
-          Effect.when(() => writes.length > 0)
-        );
-        return results;
-      });
-
+      // PG has no sdk.batch() — Batched maps to Serializable (BEGIN/COMMIT transaction)
       const serializable = useCaseWithEventStorage.pipe(
         client.withTransaction,
         Effect.mapError((e) => (isTaggedError(e) ? classifySqlError(e) : e))
@@ -76,7 +53,7 @@ export const WithTransactionLive = Layer.effect(
 
       return Match.value(isolationLevel)
         .pipe(
-          Match.when(IsolationLevel.Batched, () => batched),
+          Match.when(IsolationLevel.Batched, () => serializable),
           Match.when(IsolationLevel.Serializable, () => serializable),
           Match.orElse(() => Effect.dieMessage(`${isolationLevel} not supported`))
         )
@@ -87,5 +64,5 @@ export const WithTransactionLive = Layer.effect(
   Layer.provide(EventStoreLive),
   Layer.provideMerge(WriteStatement.live),
   Layer.provide(UseCaseCommit.live),
-  Layer.provideMerge(LibsqlClientLive)
+  Layer.provideMerge(PgClientLive)
 );

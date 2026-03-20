@@ -23,6 +23,8 @@
     "@projects/domain": "workspace:*",
     "@hex-effect/core": "workspace:*",
     "@hex-effect/infra-libsql-nats": "workspace:*",
+    "@hex-effect/infra-pg-nats": "workspace:*",
+    "@hex-effect/infra-nats": "workspace:*",
     "@badges/infra": "workspace:*"
   }
 }

@@ -35,6 +35,7 @@
     "@effect/rpc": "^0.75.0",
     "@effect/sql": "^0.51.0",
     "@effect/sql-libsql": "^0.41.0",
+    "@effect/sql-pg": "^0.52.0",
     "effect": "^3.21.0"
   }
 }

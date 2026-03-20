@@ -2,7 +2,7 @@ import { Effect, Layer, Option, pipe, Schema } from 'effect';
 import { isTagged } from 'effect/Predicate';
 import { SqlClient, SqlError } from '@effect/sql';
 import { InfrastructureError } from '@hex-effect/core';
-import { WriteStatement } from '@hex-effect/infra-libsql-nats';
+import { WriteStatement } from '@hex-effect/infra-nats';
 import { Services } from '@projects/application';
 import { Project, Task } from '@projects/domain';
 
@@ -59,15 +59,20 @@ export const FindProjectByIdLive = Layer.effect(
   )
 );
 
-// SQLite stores booleans as 0/1 integers — decode accordingly
-const TaskFromSqlite = Schema.Struct({
-  id: Task.Model.TaskId,
-  projectId: Project.Model.ProjectId,
-  description: Schema.NonEmptyString,
-  completed: Schema.transform(Schema.Number, Schema.Boolean, {
+// Handles both SQLite (0/1 integers) and PostgreSQL (native booleans)
+const BoolFromDb = Schema.Union(
+  Schema.Boolean,
+  Schema.transform(Schema.Number, Schema.Boolean, {
     decode: (n) => n !== 0,
     encode: (b) => (b ? 1 : 0)
   })
+);
+
+const TaskFromDb = Schema.Struct({
+  id: Task.Model.TaskId,
+  projectId: Project.Model.ProjectId,
+  description: Schema.NonEmptyString,
+  completed: BoolFromDb
 });
 
 export const SaveTaskLive = Layer.effect(
@@ -103,7 +108,7 @@ export const GetTasksByProjectIdLive = Layer.effect(
     Effect.map((sql) => ({
       getByProjectId: (projectId: typeof Project.Model.ProjectId.Type) =>
         sql`SELECT * FROM tasks WHERE project_id = ${projectId};`.pipe(
-          Effect.flatMap(Schema.decodeUnknown(Schema.Array(TaskFromSqlite))),
+          Effect.flatMap(Schema.decodeUnknown(Schema.Array(TaskFromDb))),
           Effect.mapError((e) => new InfrastructureError({ cause: e }))
         )
     }))
@@ -116,7 +121,7 @@ export const FindTaskByIdLive = Layer.effect(
     Effect.map((sql) => ({
       findById: (id: typeof Task.Model.TaskId.Type) =>
         sql`SELECT * FROM tasks WHERE id = ${id};`.pipe(
-          Effect.flatMap(Schema.decodeUnknown(Schema.Array(TaskFromSqlite))),
+          Effect.flatMap(Schema.decodeUnknown(Schema.Array(TaskFromDb))),
           Effect.map((results) => Option.fromNullable(results[0])),
           Effect.mapError((e) => new InfrastructureError({ cause: e }))
         )
