@@ -49,20 +49,22 @@ export const WithTransactionLive = Layer.effect(
             Ref.update(ref, (a) => [...a, stm])
           );
           const writes = yield* Ref.get(ref);
-          yield* Effect.tryPromise({
-            try: () =>
-              sdk.batch(
-                writes.map((w) => {
-                  const [sql, args] = w.compile();
-                  return {
-                    args: args as Array<InValue>,
-                    sql: sql
-                  };
-                })
-              ),
-            // TODO: distinguish between data integrity errors, and other internal/external InfraErrors (like malformed sql, server comms issues, etc.)
-            catch: (e) => new DataIntegrityError({ cause: e })
-          });
+          if (writes.length > 0) {
+            yield* Effect.tryPromise({
+              try: () =>
+                sdk.batch(
+                  writes.map((w) => {
+                    const [sql, args] = w.compile();
+                    return {
+                      args: args as Array<InValue>,
+                      sql: sql
+                    };
+                  })
+                ),
+              // TODO: distinguish between data integrity errors, and other internal/external InfraErrors (like malformed sql, server comms issues, etc.)
+              catch: (e) => new DataIntegrityError({ cause: e })
+            });
+          }
           return results;
         });
       } else if (isolationLevel === IsolationLevel.Serializable) {

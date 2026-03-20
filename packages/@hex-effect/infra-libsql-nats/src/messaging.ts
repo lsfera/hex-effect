@@ -117,9 +117,9 @@ class EventConsumerSupervisor extends Effect.Service<EventConsumerSupervisor>()(
       ) =>
         Effect.gen(function* () {
           const stream = yield* createStream.pipe(Scope.extend(scope));
-          yield* Stream.runForEach(stream, processStream).pipe(
-            Effect.supervised(supervisor),
-            Effect.fork
+          yield* Effect.forkIn(
+            Stream.runForEach(stream, processStream).pipe(Effect.supervised(supervisor)),
+            scope
           );
         });
 
@@ -163,9 +163,11 @@ export class NatsEventConsumer extends Effect.Service<NatsEventConsumer>()(
           Effect.acquireUseRelease(
             Effect.succeed(msg),
             (a) =>
-              pipe(
-                Schema.decodeUnknown(Schema.parseJson(allSchemas))(a.string()),
-                Effect.flatMap(handler)
+              Effect.uninterruptible(
+                pipe(
+                  Schema.decodeUnknown(Schema.parseJson(allSchemas))(a.string()),
+                  Effect.flatMap(handler)
+                )
               ),
             (m, exit) =>
               Exit.match(exit, {
