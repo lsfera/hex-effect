@@ -47,16 +47,19 @@ Copy from `examples/todo-app/contexts/@badges/domain/tsconfig.json`.
 ## Key implementation rules
 
 ### Domain layer
+
 - Use `makeDomainEvent` from `@hex-effect/core` for all events.
 - Use `Schema.Struct`, `Schema.brand`, `Schema.Literal` for value objects.
 - Pure functions only — no Effect services, no I/O.
 
 ### Application layer
+
 - Service ports: `Context.Tag` only, typed as `{ methodName: (...) => Effect<A, PersistenceError> }`.
 - Use cases: `Effect.gen` + `withTXBoundary(IsolationLevel.Batched)` or `Serializable`.
 - Return `ReadonlyArray<SomeEvent>` from each use case.
 
 ### Infra layer
+
 - Service implementations: `Layer.effect(Port, SqlClient.SqlClient.pipe(Effect.map(...)))`.
 - Event handlers: `Layer.effectDiscard(Effect.gen(function* () { yield* EventConsumer... }))`.
 - `<Name>InfraLive` merges all layers — consumers and services. Does NOT provide `EventConsumer`, `WithTransaction`, `LibsqlClient`, or `UUIDGenerator` (those come from `BaseLive` in `@projects/infra`).
