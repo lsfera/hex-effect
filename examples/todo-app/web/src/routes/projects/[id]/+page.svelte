@@ -9,7 +9,7 @@
   <h2>{data.project.title}</h2>
   <h3>Tasks</h3>
   <ul>
-    {#each data.tasks as task}
+    {#each data.tasks as task (task.id)}
       <li>
         <span style={task.completed ? 'text-decoration: line-through; opacity: 0.6' : ''}>
           {task.description}
@@ -48,7 +48,7 @@
 {#if data.badges.length > 0}
   <h3>Badges Earned</h3>
   <ul>
-    {#each data.badges as badge}
+    {#each data.badges as badge (badge.id)}
       <li>{badge.badgeType} — {badge.awardedAt.toLocaleString()}</li>
     {/each}
   </ul>
