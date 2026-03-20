@@ -1,19 +1,28 @@
 import { Effect, Option } from 'effect';
-import { ServiceLive } from '@projects/infra';
+import { ServiceLive, BadgesServiceLive, BadgesUseCases } from '@projects/infra';
 import { UseCases, Error as AppError } from '@projects/application';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = ({ params, platform }) =>
   platform!.runtime.runPromise(
-    UseCases.getProjectWithTasks(params.id).pipe(
-      Effect.provide(ServiceLive),
-      AppError.mapErrors,
-      Effect.map(
-        Option.match({
-          onNone: () => ({ project: null, tasks: [] }),
-          onSome: ({ tasks, ...project }) => ({ project, tasks })
-        })
+    Effect.all({
+      project: UseCases.getProjectWithTasks(params.id).pipe(AppError.mapErrors),
+      badges: BadgesUseCases.getAllBadges.pipe(
+        Effect.provide(BadgesServiceLive),
+        Effect.orElseSucceed(() => [] as const)
       )
+    }).pipe(
+      Effect.provide(ServiceLive),
+      Effect.map(({ project, badges }) => ({
+        ...Option.match(project, {
+          onNone: () => ({ project: null, tasks: [] }),
+          onSome: (result) => {
+            const { tasks, ...project } = result;
+            return { project, tasks };
+          }
+        }),
+        badges
+      }))
     )
   );
 

@@ -23,7 +23,13 @@ export default defineConfig({
       '@hex-effect/infra-libsql-nats': path.resolve(
         __dirname,
         '../../../packages/@hex-effect/infra-libsql-nats/src/index.ts'
-      )
+      ),
+      '@badges/domain': path.resolve(__dirname, '../contexts/@badges/domain/src/index.ts'),
+      '@badges/application': path.resolve(
+        __dirname,
+        '../contexts/@badges/application/src/index.ts'
+      ),
+      '@badges/infra': path.resolve(__dirname, '../contexts/@badges/infra/src/index.ts')
     }
   },
   test: {
