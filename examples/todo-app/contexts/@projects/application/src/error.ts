@@ -1,4 +1,4 @@
-import { Schema, Effect } from 'effect';
+import { Schema, Effect, Match } from 'effect';
 import type { PersistenceError } from '@hex-effect/core';
 import { isPersistenceError } from '@hex-effect/core';
 import { isTagged } from 'effect/Predicate';
@@ -23,14 +23,12 @@ export const mapErrors = <A, E extends PersistenceError | ParseError, R>(
     E | ApplicationError,
     R,
     Exclude<E, PersistenceError | ParseError> | ApplicationError
-  >(effect, (e) => {
-    if (e instanceof ApplicationError) {
-      return e;
-    } else if (isPersistenceError(e)) {
-      return new ApplicationError({ kind: ErrorKinds.Infrastructure });
-    } else if (isTagged('ParseError')(e)) {
-      return new ApplicationError({ kind: ErrorKinds.BadRequest });
-    } else {
-      return e as Exclude<E, PersistenceError | ParseError>;
-    }
-  });
+  >(
+    effect,
+    Match.type<E | ApplicationError>().pipe(
+      Match.when(Match.instanceOf(ApplicationError), (e) => e),
+      Match.when(isPersistenceError, () => new ApplicationError({ kind: ErrorKinds.Infrastructure })),
+      Match.when(isTagged('ParseError'), () => new ApplicationError({ kind: ErrorKinds.BadRequest })),
+      Match.orElse((e) => e as Exclude<E, PersistenceError | ParseError>)
+    ) as (e: E | ApplicationError) => ApplicationError | Exclude<E, PersistenceError | ParseError>
+  );

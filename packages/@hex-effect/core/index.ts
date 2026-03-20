@@ -131,9 +131,5 @@ export function withTXBoundary(level: IsolationLevel) {
   return <E, R, A extends EncodableEventBase>(
     useCase: Effect.Effect<ReadonlyArray<A>, E, R>
   ): Effect.Effect<ReadonlyArray<A>, E | PersistenceError, WithTransaction | R> =>
-    Effect.gen(function* () {
-      const withTx = yield* WithTransaction;
-      const events = yield* withTx(useCase, level);
-      return events;
-    });
+    Effect.flatMap(WithTransaction, (withTx) => withTx(useCase, level));
 }

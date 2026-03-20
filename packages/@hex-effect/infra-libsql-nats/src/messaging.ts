@@ -209,19 +209,14 @@ const upsertConsumer = (params: { $durableName: string; subjects: string[] }) =>
       )
     );
 
-    if (consumerExists) {
-      return yield* callNats(
-        stream.jsm.consumers.update(stream.streamInfo.config.name, params.$durableName, config)
-      );
-    } else {
-      return yield* callNats(
-        stream.jsm.consumers.add(stream.streamInfo.config.name, {
-          ...config,
-          ack_policy: AckPolicy.Explicit,
-          durable_name: params.$durableName
-        })
-      );
-    }
+    return yield* Effect.if(consumerExists, {
+      onTrue: () => callNats(stream.jsm.consumers.update(stream.streamInfo.config.name, params.$durableName, config)),
+      onFalse: () => callNats(stream.jsm.consumers.add(stream.streamInfo.config.name, {
+        ...config,
+        ack_policy: AckPolicy.Explicit,
+        durable_name: params.$durableName
+      }))
+    });
     // the only allowable error is handled above
   }).pipe(Effect.orDie, Effect.tap(Effect.logDebug(`Added handler for ${params.$durableName}`)));
 

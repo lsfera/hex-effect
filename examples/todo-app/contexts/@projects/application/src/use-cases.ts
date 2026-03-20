@@ -4,17 +4,12 @@ import { DeleteTask, FindProjectById, FindTaskById, GetAllProjects, GetTasksByPr
 import { IsolationLevel, withTXBoundary } from '@hex-effect/core';
 import { ApplicationError, ErrorKinds } from './error.js';
 
-const findOr =
-  <E2>(onNone: () => E2) =>
-    <Id, Entity, E, R>(
-      tag: Context.Tag<R, { findById: (id: Id) => Effect.Effect<Option.Option<Entity>, E, never> }>,
-      id: Id
-    ) =>
-      Effect.serviceFunctions(tag)
-        .findById(id)
-        .pipe(Effect.flatMap((opt) => Either.fromOption(opt, onNone)));
-
-const findOrNotFound = findOr(() => new ApplicationError({ kind: ErrorKinds.NotFound }));
+const findOrNotFound = (<E2>(onNone: () => E2) => <Id, Entity, E, R>(
+  tag: Context.Tag<R, { findById: (id: Id) => Effect.Effect<Option.Option<Entity>, E, never>; }>,
+  id: Id
+) => Effect.serviceFunctions(tag)
+  .findById(id)
+  .pipe(Effect.flatMap((opt) => Either.fromOption(opt, onNone))))(() => new ApplicationError({ kind: ErrorKinds.NotFound }));
 
 export const createProject = (title: string) =>
   Project.Service.createProject(title).pipe(
@@ -31,12 +26,14 @@ export const addTaskToProject = (params: { projectId: string; description: strin
     withTXBoundary(IsolationLevel.Batched)
   );
 
-export const removeTask = (taskId: string) =>
-  Task.Model.TaskRemovedEvent.make({ taskId: Task.Model.TaskId.make(taskId) }).pipe(
-    Effect.tap(() => Effect.serviceFunctions(DeleteTask).delete(Task.Model.TaskId.make(taskId))),
+export const removeTask = (taskId: string) => {
+  const id = Task.Model.TaskId.make(taskId);
+  return Task.Model.TaskRemovedEvent.make({ taskId: id }).pipe(
+    Effect.tap(() => Effect.serviceFunctions(DeleteTask).delete(id)),
     Effect.map((event) => [event]),
     withTXBoundary(IsolationLevel.Batched)
   );
+};
 
 export const completeTask = (taskId: string) =>
   findOrNotFound(FindTaskById, Task.Model.TaskId.make(taskId)).pipe(

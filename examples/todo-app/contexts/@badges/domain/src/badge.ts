@@ -1,5 +1,5 @@
 import { makeDomainEvent, UUIDGenerator } from '@hex-effect/core';
-import { Effect, Schema } from 'effect';
+import { Effect, Match, Schema } from 'effect';
 
 export const BadgeType = Schema.Literal('trailblazer', 'momentum', 'achiever');
 export type BadgeType = typeof BadgeType.Type;
@@ -17,13 +17,13 @@ export const BadgeAwardedEvent = makeDomainEvent(
   { badgeType: BadgeType }
 );
 
-export const badgesForCount = (count: number): BadgeType[] => {
-  const result: BadgeType[] = [];
-  if (count === 1) result.push('trailblazer');
-  if (count === 5) result.push('momentum');
-  if (count === 10) result.push('achiever');
-  return result;
-};
+export const badgesForCount = (count: number): BadgeType[] =>
+  Match.value(count).pipe(
+    Match.when(1, (): BadgeType[] => ['trailblazer']),
+    Match.when(5, (): BadgeType[] => ['momentum']),
+    Match.when(10, (): BadgeType[] => ['achiever']),
+    Match.orElse((): BadgeType[] => [])
+  );
 
 export const awardBadge = (type: BadgeType) =>
   Effect.gen(function* () {
