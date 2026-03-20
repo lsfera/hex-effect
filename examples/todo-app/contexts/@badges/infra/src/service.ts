@@ -12,7 +12,11 @@ export const GetCompletedTaskCountLive = Layer.effect(
       getCount: () =>
         sql`SELECT COUNT(*) as count FROM tasks WHERE completed = 1;`.pipe(
           Effect.flatMap(
-            Schema.decodeUnknown(Schema.Array(Schema.Struct({ count: Schema.Number })))
+            Schema.decodeUnknown(
+              Schema.Array(
+                Schema.Struct({ count: Schema.Union(Schema.Number, Schema.NumberFromString) })
+              )
+            )
           ),
           Effect.map((rows) => rows[0]?.count ?? 0),
           Effect.mapError((e) => new InfrastructureError({ cause: e }))
@@ -21,17 +25,17 @@ export const GetCompletedTaskCountLive = Layer.effect(
   )
 );
 
-// Handles both SQLite (epoch ms as INTEGER) and PostgreSQL (Date object from TIMESTAMPTZ)
+// Handles both SQLite (epoch ms as INTEGER) and PostgreSQL (BIGINT returned as string)
+const EpochToDate = Schema.transform(
+  Schema.Union(Schema.Number, Schema.NumberFromString),
+  Schema.DateFromSelf,
+  { decode: (n) => new Date(n), encode: (d) => d.getTime() }
+);
+
 const BadgeFromDb = Schema.Struct({
   id: Badge.BadgeId,
   badgeType: Badge.BadgeType,
-  awardedAt: Schema.Union(
-    Schema.DateFromSelf,
-    Schema.transform(Schema.Number, Schema.DateFromSelf, {
-      decode: (n) => new Date(n),
-      encode: (d) => d.getTime()
-    })
-  )
+  awardedAt: Schema.Union(Schema.DateFromSelf, EpochToDate)
 });
 
 export const GetAllBadgesLive = Layer.effect(

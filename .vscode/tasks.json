@@ -26,6 +26,32 @@
         "panel": "shared"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "docker-compose: up (pg)",
+      "type": "shell",
+      "command": "docker compose --profile pg up -d",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "docker-compose: down (pg)",
+      "type": "shell",
+      "command": "docker compose --profile pg down",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      },
+      "problemMatcher": []
     }
   ]
 }

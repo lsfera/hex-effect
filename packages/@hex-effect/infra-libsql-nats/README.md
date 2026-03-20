@@ -1,13 +1,15 @@
 # @hex-effect/infra-libsql-nats
 
-Infrastructure adapter for [`@hex-effect/core`](../core/README.md) using [LibSQL](https://github.com/tursodatabase/libsql) as the database and [NATS JetStream](https://docs.nats.io/nats-concepts/jetstream) as the message broker.
+LibSQL database provider for [`@hex-effect/core`](../core/README.md), built on top of [`@hex-effect/infra-nats`](../infra-nats/README.md).
 
 Provides:
 
-- `WithTransactionLive` — implements the transactional boundary (persists domain events atomically with writes)
-- `EventConsumerLive` — implements durable NATS JetStream consumers for domain event handlers
-- `EventPublisherDaemon` — background fiber that relays committed events to NATS
+- `WithTransactionLive` — implements the transactional boundary with LibSQL-specific `Batched` (sdk.batch) and `Serializable` (client.withTransaction) isolation strategies
+- `LibsqlConfig` / `LibsqlSdk` — LibSQL client configuration and lifecycle management
+- Re-exports `EventConsumerLive`, `EventPublisherDaemon`, `NatsConfig`, `WriteStatement` from `@hex-effect/infra-nats`
 - A composed `Live` layer that wires everything together
+
+See [`@hex-effect/infra-pg-nats`](../infra-pg-nats/README.md) for the PostgreSQL equivalent.
 
 ## Installation
 
@@ -147,7 +149,7 @@ The adapter automatically creates a `hex_effect_events` table on startup:
 ```sql
 CREATE TABLE IF NOT EXISTS hex_effect_events (
   message_id TEXT PRIMARY KEY NOT NULL,
-  occurred_on DATETIME NOT NULL,
+  occurred_on TEXT NOT NULL,
   delivered  INTEGER NOT NULL DEFAULT 0,
   payload    TEXT NOT NULL
 );
@@ -157,15 +159,6 @@ Domain events are stored here before being forwarded to NATS, providing an outbo
 
 ## Testing
 
-The package ships test utilities under `@hex-effect/infra-libsql-nats/test` (see `src/test/util.ts`) using [Testcontainers](https://testcontainers.com/) to spin up real LibSQL and NATS containers:
-
-```typescript
-import { LibsqlContainer, NatsContainer } from '@hex-effect/infra-libsql-nats/test';
-
-const TestLive = Live.pipe(
-  Layer.provide(LibsqlContainer.ConfigLive),
-  Layer.provide(NatsContainer.ConfigLive)
-);
-```
+The package ships test utilities in `src/test/util.ts` using [Testcontainers](https://testcontainers.com/) to spin up real LibSQL and NATS containers.
 
 > When running inside a devcontainer, set `TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal` so that the test process can reach the container ports.

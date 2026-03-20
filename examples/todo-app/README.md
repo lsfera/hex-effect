@@ -115,7 +115,7 @@ export const checkAndAwardBadges = Effect.gen(function* () {
 sql`SELECT COUNT(*) as count FROM tasks WHERE completed = 1;`;
 ```
 
-This queries the `tasks` table owned by `@projects`. Both contexts share the same LibSQL database in this deployment; the service port (`GetCompletedTaskCount`) is the anti-corruption layer that keeps `@badges/application` from knowing this detail.
+This queries the `tasks` table owned by `@projects`. Both contexts share the same database in this deployment; the service port (`GetCompletedTaskCount`) is the anti-corruption layer that keeps `@badges/application` from knowing this detail.
 
 **`BadgesInfraLive`** — registers the async cross-domain event handler:
 
@@ -132,7 +132,7 @@ consumer.register(
 ## Data Flow: completing a task
 
 ```
-Browser                  SvelteKit              LibSQL              NATS JetStream
+Browser                  SvelteKit              Database            NATS JetStream
   │                          │                     │                      │
   │── POST ?/completeTask ──▶│                     │                      │
   │                          │── completeTask() ──▶│                      │
@@ -170,7 +170,7 @@ Browser                  SvelteKit              LibSQL              NATS JetStre
 
 ### Key guarantees
 
-- **At-least-once delivery**: events are persisted in LibSQL before being published to NATS. If the process crashes between publish and `ackAck`, the event re-delivers.
+- **At-least-once delivery**: events are persisted in the database before being published to NATS. If the process crashes between publish and `ackAck`, the event re-delivers.
 - **Atomic badge award**: the `SELECT COUNT` query, `INSERT badges`, and `INSERT hex_effect_events` all happen inside a single `Batched` transaction. Either all commit or none do.
 - **Startup drain**: the `EventPublisherDaemon` flushes any `delivered = 0` events on startup before listening for new commits, so events stranded by a previous crash are not lost.
 - **Durable consumer**: `badges-task-completed` is a named JetStream consumer. Its position persists across restarts — no events are re-processed after a clean ack.
@@ -179,10 +179,13 @@ Browser                  SvelteKit              LibSQL              NATS JetStre
 
 ## Layer Composition
 
-```
-ManagedRuntime.make(Live)          ← one runtime per process
+Two fully-composed layers are exported from `@projects/infra`, one per database backend:
 
-Live =
+```
+ManagedRuntime.make(Live)          ← LibSQL backend (default)
+ManagedRuntime.make(PgLive)        ← PostgreSQL backend
+
+Live / PgLive =
   MigrationsLive                   ← CREATE TABLE IF NOT EXISTS ...
   + EventHandlersLive (@projects)  ← logs task completions
   + BadgesInfraLive                ← awards badges on TaskCompletedEvent
@@ -190,9 +193,17 @@ Live =
       WithTransactionLive          ← Batched / Serializable TX support
       EventConsumerLive            ← NatsEventConsumer as EventConsumer
       EventPublisherDaemon         ← outbox publisher fiber
-      LibsqlSdk + LibsqlClient     ← database connection
+      DatabaseClient               ← LibsqlClient or PgClient
       NatsClient + JetStream       ← messaging connection
       UUIDGenerator
+```
+
+The backend is selected at startup via `DB_PROVIDER`:
+
+```typescript
+// web/src/runtime.ts
+const layer = process.env.DB_PROVIDER === 'pg' ? PgLive : Live;
+export const runtime = ManagedRuntime.make(layer);
 ```
 
 Query services (used per-request) are provided separately:
@@ -211,10 +222,31 @@ platform.runtime.runPromise(
 # From repo root
 pnpm install
 
-# Start LibSQL and NATS:
-docker run -d -p 8080:8080 ghcr.io/tursodatabase/libsql-server:main sqld --no-welcome --http-listen-addr 0.0.0.0:8080
-docker run -d -p 4222:4222 nats:latest -js
-
-# Start dev server:
+# LibSQL backend (default):
+docker compose up -d
 DATABASE_URL=http://localhost:8080 NATS_SERVER=nats://localhost:4222 pnpm --filter web dev
+
+# PostgreSQL backend:
+docker compose --profile pg up -d
+DATABASE_URL=postgresql://hexeffect:hexeffect@localhost:5432/hexeffect \
+  NATS_SERVER=nats://localhost:4222 \
+  DB_PROVIDER=pg \
+  pnpm --filter web dev
 ```
+
+Or use the VSCode launch configs: **"Todo App (full stack)"** for LibSQL, **"Todo App (full stack, PostgreSQL)"** for PostgreSQL. Both start the required containers automatically.
+
+## Testing
+
+Integration tests in `@projects/infra` run all use cases against both backends using [Testcontainers](https://testcontainers.com/):
+
+```bash
+pnpm --filter @projects/infra test
+```
+
+Each test suite spins up isolated LibSQL, PostgreSQL, and NATS containers and runs the full stack:
+
+- Create project and retrieve it
+- Add tasks to a project
+- Complete a task and verify `TaskCompletedEvent` delivery via NATS
+- Award a trailblazer badge and verify `BadgeAwardedEvent` delivery via NATS
